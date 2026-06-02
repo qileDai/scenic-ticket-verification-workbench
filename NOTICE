@@ -1,0 +1,61 @@
+# NOTICE
+
+## 项目信息
+- **项目名称**: 景区门票团购核销异常分诊交互复核工作台
+- **版本**: 1.0.0
+- **发布日期**: 2024年1月
+- **许可证**: MIT License
+
+## 使用的开源项目
+
+本项目使用了以下优秀的开源项目：
+
+### 核心框架和工具
+- **SolidJS** (https://github.com/solidjs/solid) - MIT License
+  - 高性能的响应式 UI 框架
+  
+- **Vite** (https://github.com/vitejs/vite) - MIT License
+  - 下一代前端构建工具
+
+- **TypeScript** (https://www.typescriptlang.org/) - Apache License 2.0
+  - JavaScript 的超集，添加了静态类型
+
+### 状态管理和校验
+- **solid-js/store** (https://github.com/solidjs/solid) - MIT License
+  - SolidJS 的状态管理解决方案
+
+- **Zod** (https://github.com/colinhacks/zod) - MIT License
+  - TypeScript-first 的 schema 声明和验证库
+
+### 图表和数据可视化
+- **lightweight-charts** (https://github.com/tradingview/lightweight-charts) - Apache License 2.0
+  - TradingView 开源的高性能图表库
+
+### 路由管理
+- **@solidjs/router** (https://github.com/solidjs/solid-router) - MIT License
+  - SolidJS 的路由管理器
+
+### 测试框架
+- **Vitest** (https://github.com/vitest-dev/vitest) - MIT License
+  - 极速的前端单元测试框架
+
+- **@testing-library/jest-dom** (https://github.com/testing-library/jest-dom) - MIT License
+  - Jest DOM 自定义匹配器
+
+## 致谢
+
+感谢以上所有开源项目的维护者和贡献者！正是因为有了这些优秀的基础设施，本项目才能够快速、高效地开发完成。
+
+## 免责声明
+
+本项目为演示性质的教育项目，仅供学习和参考使用。不保证在生产环境中的稳定性和安全性。使用者需自行承担使用风险。
+
+## 联系方式
+
+如有问题或建议，欢迎通过以下方式联系：
+- GitHub Issues: [项目仓库地址]
+- Email: [联系邮箱]
+
+---
+
+最后更新时间: 2024年1月
