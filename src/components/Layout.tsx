@@ -1,5 +1,5 @@
-import type { Component } from 'solid-js'
-import { createSignal, For, onMount, Show } from 'solid-js'
+import type { Component, JSX } from 'solid-js'
+import { createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { A, useLocation } from '@solidjs/router'
 import CommandPalette from './CommandPalette'
 import ShortcutHelp from './ShortcutHelp'
@@ -7,17 +7,12 @@ import { state, setCommandPaletteOpen, setShortcutHelpOpen, loadData, exportAllD
 import { exportToCSV, exportToJSON } from '../utils/business'
 
 interface LayoutProps {
-  children: any
+  children?: JSX.Element
 }
 
 const Layout: Component<LayoutProps> = (props) => {
   const location = useLocation()
   const [showExportMenu, setShowExportMenu] = createSignal(false)
-
-  onMount(async () => {
-    await loadData()
-    document.addEventListener('keydown', handleGlobalKeyDown)
-  })
 
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
     if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
@@ -31,6 +26,15 @@ const Layout: Component<LayoutProps> = (props) => {
     }
   }
 
+  onMount(async () => {
+    await loadData()
+    document.addEventListener('keydown', handleGlobalKeyDown)
+  })
+
+  onCleanup(() => {
+    document.removeEventListener('keydown', handleGlobalKeyDown)
+  })
+
   const isInputFocused = () => {
     const activeElement = document.activeElement
     return activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || activeElement?.tagName === 'SELECT'
@@ -43,7 +47,9 @@ const Layout: Component<LayoutProps> = (props) => {
       shortcut: 'G O',
       icon: '📋',
       category: '导航',
-      action: () => window.location.href = '/'
+      action: () => {
+        window.location.href = '/'
+      }
     },
     {
       id: 'nav-exceptions',
@@ -51,7 +57,9 @@ const Layout: Component<LayoutProps> = (props) => {
       shortcut: 'G E',
       icon: '⚠️',
       category: '导航',
-      action: () => window.location.href = '/exceptions'
+      action: () => {
+        window.location.href = '/exceptions'
+      }
     },
     {
       id: 'nav-rules',
@@ -59,7 +67,9 @@ const Layout: Component<LayoutProps> = (props) => {
       shortcut: 'G R',
       icon: '⚙️',
       category: '导航',
-      action: () => window.location.href = '/rules'
+      action: () => {
+        window.location.href = '/rules'
+      }
     },
     {
       id: 'nav-duplicates',
@@ -67,7 +77,9 @@ const Layout: Component<LayoutProps> = (props) => {
       shortcut: 'G D',
       icon: '🔄',
       category: '导航',
-      action: () => window.location.href = '/duplicates'
+      action: () => {
+        window.location.href = '/duplicates'
+      }
     },
     {
       id: 'nav-charts',
@@ -75,7 +87,9 @@ const Layout: Component<LayoutProps> = (props) => {
       shortcut: 'G C',
       icon: '📊',
       category: '导航',
-      action: () => window.location.href = '/charts'
+      action: () => {
+        window.location.href = '/charts'
+      }
     },
     {
       id: 'export-json',

@@ -60,7 +60,7 @@ const DuplicateQueue: Component = () => {
       .sort((left, right) => left.verificationTime.localeCompare(right.verificationTime))
   }
 
-  const handleBatchProcess = (action: string) => {
+  const handleBatchProcess = (action: 'confirm' | 'reject' | 'queue') => {
     if (state.selectedIds.length === 0) {
       alert('请先选择要处理的记录')
       return
@@ -70,7 +70,7 @@ const DuplicateQueue: Component = () => {
       alert(`已确认处理 ${state.selectedIds.length} 条重复核销记录`)
     } else if (action === 'reject') {
       alert(`已驳回 ${state.selectedIds.length} 条重复核销记录`)
-    } else if (action === 'queue') {
+    } else {
       alert(`已将 ${state.selectedIds.length} 条记录加入异常队列`)
     }
 
@@ -120,14 +120,14 @@ const DuplicateQueue: Component = () => {
 
       <BatchActionToolbar
         selectedCount={state.selectedIds.length}
+        totalCount={duplicateRecords().length}
         onClearSelection={clearSelection}
         onSelectAll={() => setSelectedIds(duplicateRecords().map((record) => record.id))}
         actions={[
-          { key: 'confirm', label: '批量确认', type: 'primary' },
-          { key: 'reject', label: '批量驳回', type: 'default' },
-          { key: 'queue', label: '加入异常队列', type: 'danger' }
+          { label: '批量确认', variant: 'primary', onClick: () => handleBatchProcess('confirm') },
+          { label: '批量驳回', variant: 'default', onClick: () => handleBatchProcess('reject') },
+          { label: '加入异常队列', variant: 'danger', onClick: () => handleBatchProcess('queue') }
         ]}
-        onAction={handleBatchProcess}
       />
 
       <div style={{
