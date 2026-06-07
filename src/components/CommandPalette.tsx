@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { createSignal, createEffect, For, Show } from 'solid-js'
+import { createEffect, createSignal, For, Show } from 'solid-js'
 
 interface CommandItem {
   id: string
@@ -23,10 +23,10 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
   const filteredCommands = () => {
     const keyword = search().toLowerCase()
     if (!keyword) return props.commands
-    
-    return props.commands.filter(cmd => 
-      cmd.label.toLowerCase().includes(keyword) ||
-      cmd.category?.toLowerCase().includes(keyword)
+
+    return props.commands.filter((command) =>
+      command.label.toLowerCase().includes(keyword) ||
+      command.category?.toLowerCase().includes(keyword)
     )
   }
 
@@ -36,26 +36,26 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
     setSearch('')
   }
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = (event: KeyboardEvent) => {
     const filtered = filteredCommands()
-    
-    switch (e.key) {
+
+    switch (event.key) {
       case 'ArrowDown':
-        e.preventDefault()
-        setSelectedIndex(prev => Math.min(prev + 1, filtered.length - 1))
+        event.preventDefault()
+        setSelectedIndex((previous) => Math.min(previous + 1, filtered.length - 1))
         break
       case 'ArrowUp':
-        e.preventDefault()
-        setSelectedIndex(prev => Math.max(prev - 1, 0))
+        event.preventDefault()
+        setSelectedIndex((previous) => Math.max(previous - 1, 0))
         break
       case 'Enter':
-        e.preventDefault()
+        event.preventDefault()
         if (filtered[selectedIndex()]) {
           handleSelect(filtered[selectedIndex()])
         }
         break
       case 'Escape':
-        e.preventDefault()
+        event.preventDefault()
         props.onClose()
         break
     }
@@ -105,7 +105,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
             <input
               type="text"
               value={search()}
-              onInput={(e) => setSearch(e.currentTarget.value)}
+              onInput={(event) => setSearch(event.currentTarget.value)}
               placeholder="搜索命令..."
               style={{
                 flex: 1,
@@ -114,7 +114,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
                 'font-size': '16px',
                 padding: '4px 0'
               }}
-              ref={(el) => setTimeout(() => el?.focus(), 0)}
+              ref={(element) => setTimeout(() => element?.focus(), 0)}
             />
           </div>
 
@@ -145,7 +145,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
                       'align-items': 'center'
                     }}
                   >
-                    <div style={{ display: 'flex', 'gap': '12px', 'align-items': 'center' }}>
+                    <div style={{ display: 'flex', gap: '12px', 'align-items': 'center' }}>
                       <Show when={command.icon}>
                         <span>{command.icon}</span>
                       </Show>

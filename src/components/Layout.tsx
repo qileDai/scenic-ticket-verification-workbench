@@ -1,10 +1,10 @@
 import type { Component } from 'solid-js'
+import { createSignal, For, onMount, Show } from 'solid-js'
 import { A, useLocation } from '@solidjs/router'
 import CommandPalette from './CommandPalette'
 import ShortcutHelp from './ShortcutHelp'
 import { state, setCommandPaletteOpen, setShortcutHelpOpen, loadData, exportAllData, resetAllData } from '../stores'
-import { exportToJSON, exportToCSV } from '../utils/business'
-import { createSignal, onMount, Show, For } from 'solid-js'
+import { exportToCSV, exportToJSON } from '../utils/business'
 
 interface LayoutProps {
   children: any
@@ -16,27 +16,24 @@ const Layout: Component<LayoutProps> = (props) => {
 
   onMount(async () => {
     await loadData()
-    
     document.addEventListener('keydown', handleGlobalKeyDown)
   })
 
-  const handleGlobalKeyDown = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-      e.preventDefault()
+  const handleGlobalKeyDown = (event: KeyboardEvent) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+      event.preventDefault()
       setCommandPaletteOpen(true)
     }
-    
-    if (e.key === '?' && !isInputFocused()) {
-      e.preventDefault()
+
+    if (event.key === '?' && !isInputFocused()) {
+      event.preventDefault()
       setShortcutHelpOpen(true)
     }
   }
 
   const isInputFocused = () => {
     const activeElement = document.activeElement
-    return activeElement?.tagName === 'INPUT' || 
-           activeElement?.tagName === 'TEXTAREA' || 
-           activeElement?.tagName === 'SELECT'
+    return activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || activeElement?.tagName === 'SELECT'
   }
 
   const commands = [
@@ -102,7 +99,7 @@ const Layout: Component<LayoutProps> = (props) => {
       category: '数据操作',
       action: async () => {
         const data = await exportAllData()
-        if (data && data.coupons) {
+        if (data?.coupons) {
           exportToCSV(data.coupons, 'coupons')
         }
         setShowExportMenu(false)
@@ -220,7 +217,9 @@ const Layout: Component<LayoutProps> = (props) => {
                 border: '1px solid var(--border-color)',
                 'border-radius': '4px',
                 'font-size': '11px'
-              }}>⌘K</kbd>
+              }}>
+                ⌘K
+              </kbd>
             </button>
 
             <div style={{ position: 'relative' }}>
@@ -283,7 +282,7 @@ const Layout: Component<LayoutProps> = (props) => {
                     <button
                       onClick={async () => {
                         const data = await exportAllData()
-                        if (data && data.coupons) {
+                        if (data?.coupons) {
                           exportToCSV(data.coupons, 'coupons')
                         }
                         setShowExportMenu(false)

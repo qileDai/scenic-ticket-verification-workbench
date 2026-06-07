@@ -15,15 +15,17 @@ interface ShortcutHelpProps {
 
 const ShortcutHelp: Component<ShortcutHelpProps> = (props) => {
   const categories = () => {
-    const cats = new Map<string, ShortcutItem[]>()
-    props.shortcuts.forEach(shortcut => {
+    const grouped = new Map<string, ShortcutItem[]>()
+
+    props.shortcuts.forEach((shortcut) => {
       const category = shortcut.category || '通用'
-      if (!cats.has(category)) {
-        cats.set(category, [])
+      if (!grouped.has(category)) {
+        grouped.set(category, [])
       }
-      cats.get(category)!.push(shortcut)
+      grouped.get(category)?.push(shortcut)
     })
-    return Array.from(cats.entries())
+
+    return Array.from(grouped.entries())
   }
 
   return (
@@ -104,7 +106,7 @@ const ShortcutHelp: Component<ShortcutHelpProps> = (props) => {
                           <span style={{ color: 'var(--text-primary)', 'font-size': '14px' }}>
                             {item.description}
                           </span>
-                          
+
                           <kbd style={{
                             padding: '4px 12px',
                             background: 'var(--white)',

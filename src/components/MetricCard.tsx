@@ -17,7 +17,7 @@ const MetricCard: Component<MetricCardProps> = (props) => {
         background: 'var(--white)',
         padding: '20px',
         'border-radius': 'var(--radius-md)',
-        'box-shadow': 'var(--shadow-sm)',
+        'box-shadow': props.onClick ? 'var(--shadow-md)' : 'var(--shadow-sm)',
         cursor: props.onClick ? 'pointer' : 'default',
         transition: 'transform 0.2s, box-shadow 0.2s'
       }}
@@ -29,7 +29,7 @@ const MetricCard: Component<MetricCardProps> = (props) => {
       }}>
         {props.data.label}
       </div>
-      
+
       <div style={{
         display: 'flex',
         'align-items': 'baseline',
@@ -42,7 +42,7 @@ const MetricCard: Component<MetricCardProps> = (props) => {
         }}>
           {typeof props.data.value === 'number' ? props.data.value.toLocaleString() : props.data.value}
         </div>
-        
+
         {props.data.unit && (
           <span style={{ color: 'var(--text-secondary)', 'font-size': '14px' }}>
             {props.data.unit}

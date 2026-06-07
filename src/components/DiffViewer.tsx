@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { For, Show, createMemo } from 'solid-js'
+import { createMemo, For, Show } from 'solid-js'
 
 interface DiffItem {
   key: string
@@ -19,7 +19,7 @@ const DiffViewer: Component<DiffViewerProps> = (props) => {
     const allKeys = new Set([...Object.keys(props.oldData), ...Object.keys(props.newData)])
     const result: DiffItem[] = []
 
-    allKeys.forEach(key => {
+    allKeys.forEach((key) => {
       const oldValue = props.oldData[key]
       const newValue = props.newData[key]
 
@@ -37,9 +37,7 @@ const DiffViewer: Component<DiffViewerProps> = (props) => {
     return result
   })
 
-  const changedCount = createMemo(() => 
-    diffs().filter(d => d.type !== 'unchanged').length
-  )
+  const changedCount = createMemo(() => diffs().filter((diff) => diff.type !== 'unchanged').length)
 
   return (
     <div class="diff-viewer" style={{
@@ -99,7 +97,7 @@ const DiffViewer: Component<DiffViewerProps> = (props) => {
                     {diff.key}
                   </span>
                 </td>
-                
+
                 <td style={{ padding: '10px 12px', color: diff.type === 'removed' || diff.type === 'modified' ? '#f5222d' : 'inherit' }}>
                   <Show
                     when={diff.type !== 'added'}

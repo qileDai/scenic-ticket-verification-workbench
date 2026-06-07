@@ -1,4 +1,5 @@
 export type EntityStatus = 'draft' | 'pending_review' | 'pending_supplement' | 'confirmed' | 'archived' | 'rejected'
+export type BatchStatus = 'processing' | 'completed' | 'exception' | 'reconciled'
 
 export interface BaseEntity {
   id: string
@@ -82,7 +83,16 @@ export interface VisitorCredential extends BaseEntity {
   lastVerificationTime?: string
 }
 
-export interface ReconciliationBatch extends Omit<BaseEntity, 'status'> {
+export interface ReconciliationBatch {
+  id: string
+  code: string
+  name: string
+  status: BatchStatus
+  owner: string
+  createdAt: string
+  updatedAt: string
+  remark?: string
+  batchId: string
   batchCode: string
   platform: string
   startDate: string
@@ -91,7 +101,6 @@ export interface ReconciliationBatch extends Omit<BaseEntity, 'status'> {
   verifiedCount: number
   exceptionCount: number
   revenueAmount: number
-  status: 'processing' | 'completed' | 'exception' | 'reconciled'
 }
 
 export interface StatusTransitionRecord extends BaseEntity {

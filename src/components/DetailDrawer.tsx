@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { createSignal, Show, For } from 'solid-js'
+import { createSignal, For, Show } from 'solid-js'
 import StatusBadge from './StatusBadge'
 
 interface FieldConfig {
@@ -41,9 +41,7 @@ const DetailDrawer: Component<DetailDrawerProps> = (props) => {
   }
 
   const saveChanges = () => {
-    if (props.onSave) {
-      props.onSave(editData())
-    }
+    props.onSave?.(editData())
     setIsEditing(false)
     setEditData({})
   }
@@ -57,7 +55,7 @@ const DetailDrawer: Component<DetailDrawerProps> = (props) => {
         right: 0,
         bottom: 0,
         background: 'rgba(0, 0, 0, 0.5)',
-        'z-index': 999,
+        'z-index': 999
       }}>
         <div style={{
           position: 'fixed',
@@ -128,40 +126,43 @@ const DetailDrawer: Component<DetailDrawerProps> = (props) => {
           </div>
 
           <div style={{ flex: 1, overflow: 'auto', padding: '20px' }}>
-            <Show when={activeTab() === 'basic'} fallback={
-              <div>
-                <div style={{ 'margin-bottom': '24px' }}>
-                  <strong>当前状态</strong>
-                  <div style={{ 'margin-top': '8px' }}>
-                    <StatusBadge status={props.data.status} size="large" />
-                  </div>
-                </div>
-
-                <Show when={props.onStatusChange && props.statusOptions}>
-                  <div>
-                    <strong style={{ display: 'block', 'margin-bottom': '12px' }}>变更状态</strong>
-                    <div style={{ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }}>
-                      <For each={props.statusOptions || []}>
-                        {(option) => (
-                          <button
-                            onClick={() => props.onStatusChange?.(option.value)}
-                            style={{
-                              padding: '8px 16px',
-                              background: 'var(--white)',
-                              border: '1px solid var(--border-color)',
-                              'border-radius': 'var(--radius-sm)',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {option.label}
-                          </button>
-                        )}
-                      </For>
+            <Show
+              when={activeTab() === 'basic'}
+              fallback={
+                <div>
+                  <div style={{ 'margin-bottom': '24px' }}>
+                    <strong>当前状态</strong>
+                    <div style={{ 'margin-top': '8px' }}>
+                      <StatusBadge status={props.data.status} size="large" />
                     </div>
                   </div>
-                </Show>
-              </div>
-            }>
+
+                  <Show when={props.onStatusChange && props.statusOptions}>
+                    <div>
+                      <strong style={{ display: 'block', 'margin-bottom': '12px' }}>变更状态</strong>
+                      <div style={{ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }}>
+                        <For each={props.statusOptions || []}>
+                          {(option) => (
+                            <button
+                              onClick={() => props.onStatusChange?.(option.value)}
+                              style={{
+                                padding: '8px 16px',
+                                background: 'var(--white)',
+                                border: '1px solid var(--border-color)',
+                                'border-radius': 'var(--radius-sm)',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {option.label}
+                            </button>
+                          )}
+                        </For>
+                      </div>
+                    </div>
+                  </Show>
+                </div>
+              }
+            >
               <div class="detail-fields">
                 <For each={props.fields}>
                   {(field) => (
@@ -174,7 +175,7 @@ const DetailDrawer: Component<DetailDrawerProps> = (props) => {
                       }}>
                         {field.label}
                       </label>
-                      
+
                       <Show
                         when={isEditing() && field.editable}
                         fallback={
@@ -203,14 +204,14 @@ const DetailDrawer: Component<DetailDrawerProps> = (props) => {
                                 <input
                                   type={field.type || 'text'}
                                   value={editData()[field.key] || ''}
-                                  onChange={(e) => handleFieldChange(field.key, e.currentTarget.value)}
+                                  onChange={(event) => handleFieldChange(field.key, event.currentTarget.value)}
                                   style={{ width: '100%' }}
                                 />
                               }
                             >
                               <textarea
                                 value={editData()[field.key] || ''}
-                                onChange={(e) => handleFieldChange(field.key, e.currentTarget.value)}
+                                onChange={(event) => handleFieldChange(field.key, event.currentTarget.value)}
                                 rows={4}
                                 style={{ width: '100%' }}
                               />
@@ -219,11 +220,11 @@ const DetailDrawer: Component<DetailDrawerProps> = (props) => {
                         >
                           <select
                             value={editData()[field.key] || ''}
-                            onChange={(e) => handleFieldChange(field.key, e.currentTarget.value)}
+                            onChange={(event) => handleFieldChange(field.key, event.currentTarget.value)}
                             style={{ width: '100%' }}
                           >
                             <For each={field.options || []}>
-                              {(opt) => <option value={opt.value}>{opt.label}</option>}
+                              {(option) => <option value={option.value}>{option.label}</option>}
                             </For>
                           </select>
                         </Show>
@@ -242,8 +243,9 @@ const DetailDrawer: Component<DetailDrawerProps> = (props) => {
             gap: '12px',
             'justify-content': 'flex-end'
           }}>
-            <Show when={isEditing()} fallback={
-              <>
+            <Show
+              when={isEditing()}
+              fallback={
                 <button
                   onClick={startEditing}
                   disabled={!props.onSave}
@@ -258,8 +260,8 @@ const DetailDrawer: Component<DetailDrawerProps> = (props) => {
                 >
                   编辑
                 </button>
-              </>
-            }>
+              }
+            >
               <button
                 onClick={cancelEditing}
                 style={{

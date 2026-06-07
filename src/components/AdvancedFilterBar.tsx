@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { createSignal, For } from 'solid-js'
+import { createMemo, createSignal, For } from 'solid-js'
 import type { FilterCriteria, EntityStatus } from '../types'
 import { STATUS_LABELS } from '../utils/business'
 
@@ -24,6 +24,8 @@ const AdvancedFilterBar: Component<AdvancedFilterBarProps> = (props) => {
   const [startDate, setStartDate] = createSignal('')
   const [endDate, setEndDate] = createSignal('')
 
+  const statuses = createMemo(() => Object.keys(STATUS_LABELS) as EntityStatus[])
+
   const handleFilter = () => {
     props.onFilterChange({
       keyword: keyword() || undefined,
@@ -47,10 +49,11 @@ const AdvancedFilterBar: Component<AdvancedFilterBarProps> = (props) => {
   const toggleStatus = (status: EntityStatus) => {
     const current = selectedStatuses()
     if (current.includes(status)) {
-      setSelectedStatuses(current.filter(s => s !== status))
-    } else {
-      setSelectedStatuses([...current, status])
+      setSelectedStatuses(current.filter(item => item !== status))
+      return
     }
+
+    setSelectedStatuses([...current, status])
   }
 
   return (
@@ -67,35 +70,37 @@ const AdvancedFilterBar: Component<AdvancedFilterBarProps> = (props) => {
             type="text"
             placeholder="搜索编号/名称/券码..."
             value={keyword()}
-            onInput={(e) => setKeyword(e.currentTarget.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleFilter()}
+            onInput={(event) => setKeyword(event.currentTarget.value)}
+            onKeyPress={(event) => event.key === 'Enter' && handleFilter()}
             style={{ width: '100%' }}
           />
         </div>
 
         <div style={{ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }}>
-          {(Object.keys(STATUS_LABELS) as EntityStatus[]).map(status => (
-            <button
-              onClick={() => toggleStatus(status)}
-              style={{
-                padding: '6px 12px',
-                border: `1px solid ${selectedStatuses().includes(status) ? 'var(--primary-color)' : 'var(--border-color)'}`,
-                'border-radius': 'var(--radius-sm)',
-                background: selectedStatuses().includes(status) ? '#e6f7ff' : 'var(--white)',
-                color: selectedStatuses().includes(status) ? 'var(--primary-color)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                'font-size': '13px'
-              }}
-            >
-              {STATUS_LABELS[status]}
-            </button>
-          ))}
+          <For each={statuses()}>
+            {(status) => (
+              <button
+                onClick={() => toggleStatus(status)}
+                style={{
+                  padding: '6px 12px',
+                  border: `1px solid ${selectedStatuses().includes(status) ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                  'border-radius': 'var(--radius-sm)',
+                  background: selectedStatuses().includes(status) ? '#e6f7ff' : 'var(--white)',
+                  color: selectedStatuses().includes(status) ? 'var(--primary-color)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  'font-size': '13px'
+                }}
+              >
+                {STATUS_LABELS[status]}
+              </button>
+            )}
+          </For>
         </div>
 
         <div>
           <select
             value={selectedOwner()}
-            onChange={(e) => setSelectedOwner(e.currentTarget.value)}
+            onChange={(event) => setSelectedOwner(event.currentTarget.value)}
             style={{ width: '120px' }}
           >
             <option value="">全部负责人</option>
@@ -108,7 +113,7 @@ const AdvancedFilterBar: Component<AdvancedFilterBarProps> = (props) => {
         <div>
           <select
             value={selectedBatch()}
-            onChange={(e) => setSelectedBatch(e.currentTarget.value)}
+            onChange={(event) => setSelectedBatch(event.currentTarget.value)}
             style={{ width: '150px' }}
           >
             <option value="">全部批次</option>
@@ -122,14 +127,14 @@ const AdvancedFilterBar: Component<AdvancedFilterBarProps> = (props) => {
           <input
             type="date"
             value={startDate()}
-            onChange={(e) => setStartDate(e.currentTarget.value)}
+            onChange={(event) => setStartDate(event.currentTarget.value)}
             placeholder="开始日期"
           />
           <span>至</span>
           <input
             type="date"
             value={endDate()}
-            onChange={(e) => setEndDate(e.currentTarget.value)}
+            onChange={(event) => setEndDate(event.currentTarget.value)}
             placeholder="结束日期"
           />
         </div>

@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { createSignal, createMemo, For, Show } from 'solid-js'
+import { createMemo, createSignal, For, Show } from 'solid-js'
 import ChartWidget from '../components/ChartWidget'
 import MetricCard from '../components/MetricCard'
 import StatusBadge from '../components/StatusBadge'
@@ -11,12 +11,12 @@ import {
   aggregateMetricsByBatch,
   aggregateMetricsByOwner
 } from '../utils/business'
-import type { VerificationRecord, GroupBuyCoupon, ChartDataPoint } from '../types'
+import type { ChartDataPoint } from '../types'
 
 const ChartPanel: Component = () => {
-  const [selectedMetric, setSelectedMetric] = createSignal<string>('success_rate')
-  const [timeRange, setTimeRange] = createSignal<string>('7d')
-  const [drillDownData, setDrillDownData] = createSignal<any[]>([])
+  const [selectedMetric, setSelectedMetric] = createSignal('success_rate')
+  const [timeRange, setTimeRange] = createSignal<'7d' | '30d' | '90d' | 'all'>('7d')
+  const [drillDownData, setDrillDownData] = createSignal<ChartDataPoint[]>([])
 
   const records = () => state.records
   const coupons = () => state.coupons
@@ -44,7 +44,7 @@ const ChartPanel: Component = () => {
     },
     {
       label: '今日核销',
-      value: records().filter(r => r.verificationTime.startsWith(new Date().toISOString().slice(0, 10))).length,
+      value: records().filter((record) => record.verificationTime.startsWith(new Date().toISOString().slice(0, 10))).length,
       unit: '条'
     }
   ]
@@ -52,9 +52,9 @@ const ChartPanel: Component = () => {
   const successRateByDate = createMemo<ChartDataPoint[]>(() => {
     return aggregateMetricsByDate(
       records(),
-      (r) => r.verificationTime.slice(0, 10),
-      (r) => r.isSuccess ? 1 : 0
-    ).map(item => ({
+      (record) => record.verificationTime.slice(0, 10),
+      (record) => record.isSuccess ? 1 : 0
+    ).map((item) => ({
       time: item.date,
       value: item.value,
       category: '成功数'
@@ -64,9 +64,9 @@ const ChartPanel: Component = () => {
   const totalRecordsByDate = createMemo<ChartDataPoint[]>(() => {
     return aggregateMetricsByDate(
       records(),
-      (r) => r.verificationTime.slice(0, 10),
+      (record) => record.verificationTime.slice(0, 10),
       () => 1
-    ).map(item => ({
+    ).map((item) => ({
       time: item.date,
       value: item.value,
       category: '总数'
@@ -76,61 +76,97 @@ const ChartPanel: Component = () => {
   const successRateByBatch = createMemo<ChartDataPoint[]>(() => {
     return aggregateMetricsByBatch(
       records(),
-      (r) => r.isSuccess ? 1 : 0
-    ).map(item => ({
-      time: item.batchId.slice(0, 10),
+      (record) => record.isSuccess ? 1 : 0
+    ).map((item) => ({
+      time: item.batchId,
       value: item.value,
-      category: '批次成功率'
+      category: '批次成功数'
     }))
   })
 
   const successRateByOwner = createMemo(() => {
     return aggregateMetricsByOwner(
       records(),
-      (r) => r.isSuccess ? 1 : 0
+      (record) => record.isSuccess ? 1 : 0
     )
   })
 
-  const handleMetricClick = (metricLabel: string) => {
-    setSelectedMetric(metricLabel)
-    
-    if (metricLabel === '核销成功率') {
-      setDrillDownData(successRateByDate())
-    } else if (metricLabel === '重复核销率') {
-      setDrillDownData([])
-    } else if (metricLabel === '总核销记录') {
-      setDrillDownData(totalRecordsByDate())
-    } else if (metricLabel === '今日核销') {
-      const todayRecords = records().filter(r => 
-        r.verificationTime.startsWith(new Date().toISOString().slice(0, 10))
-      )
-      setDrillDownData(todayRecords.map(r => ({
-        time: r.verificationTime.slice(11, 16),
-        value: 1,
-        category: r.isSuccess ? '成功' : '失败'
-      })))
+  const filterDataByRange = (data: ChartDataPoint[]) => {
+    const range = timeRange()
+    if (range === 'all') {
+      return data
     }
+
+    const days = range === '7d' ? 7 : range === '30d' ? 30 : 90
+    const threshold = new Date()
+    threshold.setDate(threshold.getDate() - days)
+
+    return data.filter((item) => {
+      const itemDate = new Date(item.time)
+      return !Number.isNaN(itemDate.getTime()) ? itemDate >= threshold : true
+    })
+  }
+
+  const handleMetricClick = (metricLabel: string) => {
+    if (metricLabel === '核销成功率') {
+      setSelectedMetric('success_rate')
+      setDrillDownData(successRateByDate())
+      return
+    }
+
+    if (metricLabel === '重复核销率') {
+      setSelectedMetric('duplicate_rate')
+      setDrillDownData([])
+      return
+    }
+
+    if (metricLabel === '总核销记录') {
+      setSelectedMetric('total_records')
+      setDrillDownData(totalRecordsByDate())
+      return
+    }
+
+    setSelectedMetric('today_records')
+    const todayRecords = records().filter((record) =>
+      record.verificationTime.startsWith(new Date().toISOString().slice(0, 10))
+    )
+    setDrillDownData(todayRecords.map((record) => ({
+      time: record.verificationTime.slice(11, 16),
+      value: 1,
+      category: record.isSuccess ? '成功' : '失败'
+    })))
   }
 
   const getFilteredChartData = (): ChartDataPoint[] => {
     switch (selectedMetric()) {
-      case 'success_rate':
-        return successRateByDate()
       case 'total_records':
-        return totalRecordsByDate()
+        return filterDataByRange(totalRecordsByDate())
+      case 'batch_rate':
+        return successRateByBatch()
       default:
-        return successRateByDate()
+        return filterDataByRange(successRateByDate())
     }
   }
 
   const getChartTitle = (): string => {
     switch (selectedMetric()) {
-      case 'success_rate': return '核销成功率趋势（按日）'
-      case 'total_records': return '核销总量趋势（按日）'
-      case 'batch_rate': return '各批次核销情况'
-      default: return '数据趋势图'
+      case 'success_rate':
+        return '核销成功率趋势（按日）'
+      case 'total_records':
+        return '核销总量趋势（按日）'
+      case 'batch_rate':
+        return '各批次核销情况'
+      default:
+        return '数据趋势图'
     }
   }
+
+  const timeRanges: Array<{ value: '7d' | '30d' | '90d' | 'all'; label: string }> = [
+    { value: '7d', label: '近7天' },
+    { value: '30d', label: '近30天' },
+    { value: '90d', label: '近90天' },
+    { value: 'all', label: '全部' }
+  ]
 
   return (
     <div class="chart-panel">
@@ -165,10 +201,10 @@ const ChartPanel: Component = () => {
           'box-shadow': 'var(--shadow-sm)'
         }}>
           <h3 style={{ 'margin-bottom': '16px', color: 'var(--text-primary)' }}>数据维度切换</h3>
-          
+
           <div style={{ display: 'flex', 'flex-direction': 'column', gap: '12px' }}>
             <button
-              onClick={() => { setSelectedMetric('success_rate'); handleMetricClick('核销成功率') }}
+              onClick={() => handleMetricClick('核销成功率')}
               style={{
                 padding: '12px 16px',
                 background: selectedMetric() === 'success_rate' ? '#e6f7ff' : '#f5f5f5',
@@ -183,7 +219,7 @@ const ChartPanel: Component = () => {
             </button>
 
             <button
-              onClick={() => { setSelectedMetric('total_records'); handleMetricClick('总核销记录') }}
+              onClick={() => handleMetricClick('总核销记录')}
               style={{
                 padding: '12px 16px',
                 background: selectedMetric() === 'total_records' ? '#e6f7ff' : '#f5f5f5',
@@ -198,7 +234,10 @@ const ChartPanel: Component = () => {
             </button>
 
             <button
-              onClick={() => { setSelectedMetric('batch_rate'); setDrillDownData(successRateByBatch()) }}
+              onClick={() => {
+                setSelectedMetric('batch_rate')
+                setDrillDownData(successRateByBatch())
+              }}
               style={{
                 padding: '12px 16px',
                 background: selectedMetric() === 'batch_rate' ? '#e6f7ff' : '#f5f5f5',
@@ -213,7 +252,7 @@ const ChartPanel: Component = () => {
             </button>
 
             <button
-              onClick={() => alert('显示按责任角色聚合的数据')}
+              onClick={() => setDrillDownData(successRateByOwner().map((item) => ({ time: item.owner, value: item.value, category: '负责人' })))}
               style={{
                 padding: '12px 16px',
                 background: '#f5f5f5',
@@ -230,24 +269,26 @@ const ChartPanel: Component = () => {
           <hr style={{ margin: '20px 0', border: 'none', 'border-top': '1px solid var(--border-color)' }} />
 
           <h4 style={{ 'margin-bottom': '12px' }}>时间范围</h4>
-          
+
           <div style={{ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }}>
-            {['7d', '30d', '90d', 'all'].map(range => (
-              <button
-                onClick={() => setTimeRange(range)}
-                style={{
-                  padding: '6px 12px',
-                  background: timeRange() === range ? 'var(--primary-color)' : '#f5f5f5',
-                  color: timeRange() === range ? '#fff' : 'var(--text-secondary)',
-                  border: 'none',
-                  'border-radius': '4px',
-                  cursor: 'pointer',
-                  'font-size': '13px'
-                }}
-              >
-                {{ '7d': '近7天', '30d': '近30天', '90d': '近90天', 'all': '全部' }[range]}
-              </button>
-            ))}
+            <For each={timeRanges}>
+              {(range) => (
+                <button
+                  onClick={() => setTimeRange(range.value)}
+                  style={{
+                    padding: '6px 12px',
+                    background: timeRange() === range.value ? 'var(--primary-color)' : '#f5f5f5',
+                    color: timeRange() === range.value ? '#fff' : 'var(--text-secondary)',
+                    border: 'none',
+                    'border-radius': '4px',
+                    cursor: 'pointer',
+                    'font-size': '13px'
+                  }}
+                >
+                  {range.label}
+                </button>
+              )}
+            </For>
           </div>
         </div>
       </div>
@@ -261,6 +302,17 @@ const ChartPanel: Component = () => {
         />
       </Show>
 
+      <Show when={drillDownData().length > 0 && selectedMetric() !== 'batch_rate'}>
+        <div style={{ 'margin-bottom': '24px' }}>
+          <ChartWidget
+            data={drillDownData()}
+            title="明细下钻"
+            height={260}
+            color="#722ed1"
+          />
+        </div>
+      </Show>
+
       <div style={{ display: 'grid', 'grid-template-columns': '1fr 1fr', gap: '20px', 'margin-top': '24px' }}>
         <div style={{
           background: 'var(--white)',
@@ -269,7 +321,7 @@ const ChartPanel: Component = () => {
           'box-shadow': 'var(--shadow-sm)'
         }}>
           <h3 style={{ 'margin-bottom': '16px', color: 'var(--text-primary)' }}>按负责人统计</h3>
-          
+
           <For each={successRateByOwner()}>
             {(item) => (
               <div style={{
@@ -295,7 +347,7 @@ const ChartPanel: Component = () => {
           'box-shadow': 'var(--shadow-sm)'
         }}>
           <h3 style={{ 'margin-bottom': '16px', color: 'var(--text-primary)' }}>最近核销记录明细</h3>
-          
+
           <div style={{ 'max-height': '300px', overflow: 'auto' }}>
             <For each={records().slice(-10).reverse()}>
               {(record) => (
@@ -310,7 +362,7 @@ const ChartPanel: Component = () => {
                     <strong>{record.recordCode}</strong>
                     <StatusBadge status={record.isSuccess ? 'confirmed' : 'rejected'} size="small" />
                   </div>
-                  
+
                   <div style={{ 'font-size': '13px', color: 'var(--text-secondary)', 'margin-top': '4px' }}>
                     时间：{record.verificationTime.slice(0, 16)} | 操作人：{record.operatorName}
                   </div>

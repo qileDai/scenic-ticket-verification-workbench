@@ -7,28 +7,28 @@ export class LocalStorageService {
     return `${STORAGE_PREFIX}${entity}`
   }
 
-  async getAll<T = any>(entity: string): Promise<T[]> {
+  async getAll<T>(entity: string): Promise<T[]> {
     const data = localStorage.getItem(this.getStorageKey(entity))
     return data ? JSON.parse(data) : []
   }
 
-  async getById<T = any>(entity: string, id: string): Promise<T | null> {
+  async getById<T>(entity: string, id: string): Promise<T | null> {
     const items = await this.getAll<T>(entity)
     return items.find((item: any) => item.id === id) || null
   }
 
-  async create<T = any>(entity: string, item: T & { id: string }): Promise<T & { id: string }> {
-    const items = await this.getAll<T & { id: string }>(entity)
+  async create<T extends { id: string }>(entity: string, item: T): Promise<T> {
+    const items = await this.getAll<T>(entity)
     items.push(item)
     localStorage.setItem(this.getStorageKey(entity), JSON.stringify(items))
     return item
   }
 
-  async update<T = any>(entity: string, id: string, updates: Partial<T>): Promise<(T & { id: string }) | null> {
-    const items = await this.getAll<T & { id: string }>(entity)
+  async update<T extends { id: string }>(entity: string, id: string, updates: Partial<T>): Promise<T | null> {
+    const items = await this.getAll<T>(entity)
     const index = items.findIndex((item: any) => item.id === id)
     if (index === -1) return null
-    
+
     items[index] = { ...items[index], ...updates }
     localStorage.setItem(this.getStorageKey(entity), JSON.stringify(items))
     return items[index]
@@ -37,22 +37,22 @@ export class LocalStorageService {
   async delete(entity: string, id: string): Promise<boolean> {
     const items = await this.getAll<any>(entity)
     const filteredItems = items.filter((item: any) => item.id !== id)
-    
+
     if (filteredItems.length === items.length) return false
-    
+
     localStorage.setItem(this.getStorageKey(entity), JSON.stringify(filteredItems))
     return true
   }
 
-  async batchCreate<T = any>(entity: string, items: Array<T & { id: string }>): Promise<Array<T & { id: string }>> {
-    const existingItems = await this.getAll<T & { id: string }>(entity)
+  async batchCreate<T extends { id: string }>(entity: string, items: T[]): Promise<T[]> {
+    const existingItems = await this.getAll<T>(entity)
     const allItems = [...existingItems, ...items]
     localStorage.setItem(this.getStorageKey(entity), JSON.stringify(allItems))
     return items
   }
 
-  async batchUpdate<T = any>(entity: string, updates: Array<{ id: string; data: Partial<T> }>): Promise<Array<T & { id: string }>> {
-    const items = await this.getAll<T & { id: string }>(entity)
+  async batchUpdate<T extends { id: string }>(entity: string, updates: Array<{ id: string; data: Partial<T> }>): Promise<T[]> {
+    const items = await this.getAll<T>(entity)
     const updatedItems = items.map((item: any) => {
       const update = updates.find(u => u.id === item.id)
       return update ? { ...item, ...update.data } : item
@@ -80,7 +80,7 @@ export class LocalStorageService {
   exportAllData(): Record<string, any[]> {
     const data: Record<string, any[]> = {}
     const keys = Object.keys(localStorage).filter(key => key.startsWith(STORAGE_PREFIX))
-    
+
     keys.forEach(key => {
       const entityName = key.replace(STORAGE_PREFIX, '')
       const storedData = localStorage.getItem(key)
@@ -88,7 +88,7 @@ export class LocalStorageService {
         data[entityName] = JSON.parse(storedData)
       }
     })
-    
+
     return data
   }
 
@@ -127,6 +127,18 @@ export class MockApiService {
 
   async deleteCoupon(id: string): Promise<boolean> {
     return this.storage.delete('coupons', id)
+  }
+
+  async batchCreate<T extends { id: string }>(entity: string, items: T[]): Promise<T[]> {
+    return this.storage.batchCreate(entity, items)
+  }
+
+  async batchUpdate<T extends { id: string }>(entity: string, updates: Array<{ id: string; data: Partial<T> }>): Promise<T[]> {
+    return this.storage.batchUpdate(entity, updates)
+  }
+
+  async batchDelete(entity: string, ids: string[]): Promise<boolean> {
+    return this.storage.batchDelete(entity, ids)
   }
 
   async getRecords(): Promise<VerificationRecord[]> {
@@ -251,14 +263,6 @@ export class MockApiService {
 
   async checkHasData(): Promise<boolean> {
     return this.storage.hasData()
-  }
-
-  async batchCreate<T extends { id: string } = any>(entity: string, items: T[]): Promise<T[]> {
-    return this.storage.batchCreate(entity, items)
-  }
-
-  async batchUpdate<T extends { id: string } = any>(entity: string, updates: Array<{ id: string; data: Partial<T> }>): Promise<T[]> {
-    return this.storage.batchUpdate(entity, updates)
   }
 }
 

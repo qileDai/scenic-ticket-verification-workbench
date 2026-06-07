@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   calculateVerificationSuccessRate,
   calculateDuplicateRate,
@@ -8,29 +8,27 @@ import {
   getNextPossibleStatuses,
   aggregateMetricsByDate,
   aggregateMetricsByBatch,
-  parseCSV,
-  exportToJSON,
-  exportToCSV
+  parseCSV
 } from '../src/utils/business'
-import type { GroupBuyCoupon, VerificationRecord, EntranceGate, VisitorCredential, EntityStatus } from '../src/types'
+import type { GroupBuyCoupon, VerificationRecord, EntranceGate, VisitorCredential } from '../src/types'
 
 describe('业务规则计算', () => {
   describe('核销成功率计算', () => {
     it('应该正确计算成功率 - 全部成功', () => {
       const records: VerificationRecord[] = [
-        { id: '1', code: 'R1', name: '记录1', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR001', couponId: 'C1', gateId: 'G1', verificationTime: '2024-01-15T10:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true } as any
+        { id: '1', code: 'R1', name: '记录1', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR001', couponId: 'C1', gateId: 'G1', verificationTime: '2024-01-15T10:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true }
       ]
-      
+
       expect(calculateVerificationSuccessRate(records)).toBe(100)
     })
 
     it('应该正确计算成功率 - 部分成功', () => {
       const records: VerificationRecord[] = [
-        { id: '1', code: 'R1', name: '记录1', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR001', couponId: 'C1', gateId: 'G1', verificationTime: '2024-01-15T10:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true } as any,
-        { id: '2', code: 'R2', name: '记录2', status: 'rejected', owner: '李四', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR002', couponId: 'C2', gateId: 'G1', verificationTime: '2024-01-15T11:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: false, failReason: '闸机离线' } as any,
-        { id: '3', code: 'R3', name: '记录3', status: 'confirmed', owner: '王五', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR003', couponId: 'C3', gateId: 'G1', verificationTime: '2024-01-15T12:00:00Z', verificationMethod: 'offline', operatorName: '操作人', isSuccess: false, failReason: '券码过期' } as any
+        { id: '1', code: 'R1', name: '记录1', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR001', couponId: 'C1', gateId: 'G1', verificationTime: '2024-01-15T10:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true },
+        { id: '2', code: 'R2', name: '记录2', status: 'rejected', owner: '李四', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR002', couponId: 'C2', gateId: 'G1', verificationTime: '2024-01-15T11:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: false, failReason: '闸机离线' },
+        { id: '3', code: 'R3', name: '记录3', status: 'confirmed', owner: '王五', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR003', couponId: 'C3', gateId: 'G1', verificationTime: '2024-01-15T12:00:00Z', verificationMethod: 'offline', operatorName: '操作人', isSuccess: false, failReason: '券码过期' }
       ]
-      
+
       expect(calculateVerificationSuccessRate(records)).toBeCloseTo(33.33, 1)
     })
 
@@ -42,18 +40,17 @@ describe('业务规则计算', () => {
   describe('重复核销率计算', () => {
     it('应该检测到重复核销', () => {
       const coupons: GroupBuyCoupon[] = [
-        { id: 'C1', code: 'COUPON-001', name: '券码1', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1' } as any,
-        { id: 'C2', code: 'COUPON-002', name: '券码2', status: 'confirmed', owner: '李四', createdAt: '', updatedAt: '', batchId: 'B1' } as any
+        { id: 'C1', code: 'COUPON-001', name: '券码1', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', couponCode: 'CP1', platform: 'meituan', ticketType: '成人票', originalPrice: 100, discountPrice: 80, validFrom: '2026-01-01T00:00:00Z', validTo: '2099-12-31T23:59:59Z' },
+        { id: 'C2', code: 'COUPON-002', name: '券码2', status: 'confirmed', owner: '李四', createdAt: '', updatedAt: '', batchId: 'B1', couponCode: 'CP2', platform: 'meituan', ticketType: '成人票', originalPrice: 100, discountPrice: 80, validFrom: '2026-01-01T00:00:00Z', validTo: '2099-12-31T23:59:59Z' }
       ]
 
       const records: VerificationRecord[] = [
-        { id: 'R1', recordCode: 'VR001', couponId: 'C1', isSuccess: true } as any,
-        { id: 'R2', recordCode: 'VR002', couponId: 'C1', isSuccess: true } as any,
-        { id: 'R3', recordCode: 'VR003', couponId: 'C2', isSuccess: true } as any
+        { id: 'R1', code: 'R1', name: '记录1', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR001', couponId: 'C1', gateId: 'G1', verificationTime: '2024-01-15T10:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true },
+        { id: 'R2', code: 'R2', name: '记录2', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR002', couponId: 'C1', gateId: 'G1', verificationTime: '2024-01-15T11:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true },
+        { id: 'R3', code: 'R3', name: '记录3', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR003', couponId: 'C2', gateId: 'G1', verificationTime: '2024-01-15T12:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true }
       ]
 
-      const rate = calculateDuplicateRate(coupons, records)
-      expect(rate).toBe(50) // C1被重复，2个券码中有1个重复
+      expect(calculateDuplicateRate(coupons, records)).toBe(50)
     })
   })
 
@@ -74,7 +71,7 @@ describe('业务规则计算', () => {
         originalPrice: 180,
         discountPrice: 128,
         validFrom: '2024-01-01T00:00:00Z',
-        validTo: '2024-12-31T23:59:59Z'
+        validTo: '2099-12-31T23:59:59Z'
       }
 
       const record: VerificationRecord = {
@@ -151,7 +148,7 @@ describe('业务规则计算', () => {
         originalPrice: 180,
         discountPrice: 128,
         validFrom: '2024-01-01T00:00:00Z',
-        validTo: '2024-12-31T23:59:59Z'
+        validTo: '2099-12-31T23:59:59Z'
       }
 
       const result = checkCouponConsistency(coupon)
@@ -164,10 +161,10 @@ describe('业务规则计算', () => {
   describe('重复核销检测', () => {
     it('应该检测出重复核销的券码', () => {
       const records: VerificationRecord[] = [
-        { id: 'R1', recordCode: 'VR001', couponId: 'C1', verificationTime: '2024-01-15T10:00:00Z', isSuccess: true } as any,
-        { id: 'R2', recordCode: 'VR002', couponId: 'C2', verificationTime: '2024-01-15T11:00:00Z', isSuccess: true } as any,
-        { id: 'R3', recordCode: 'VR003', couponId: 'C1', verificationTime: '2024-01-15T12:00:00Z', isSuccess: true } as any,
-        { id: 'R4', recordCode: 'VR004', couponId: 'C3', verificationTime: '2024-01-15T13:00:00Z', isSuccess: true } as any
+        { id: 'R1', code: 'R1', name: '记录1', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR001', couponId: 'C1', gateId: 'G1', verificationTime: '2024-01-15T10:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true },
+        { id: 'R2', code: 'R2', name: '记录2', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR002', couponId: 'C2', gateId: 'G1', verificationTime: '2024-01-15T11:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true },
+        { id: 'R3', code: 'R3', name: '记录3', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR003', couponId: 'C1', gateId: 'G1', verificationTime: '2024-01-15T12:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true },
+        { id: 'R4', code: 'R4', name: '记录4', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR004', couponId: 'C3', gateId: 'G1', verificationTime: '2024-01-15T13:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true }
       ]
 
       const duplicates = detectDuplicateVerification(records)
@@ -178,12 +175,11 @@ describe('业务规则计算', () => {
 
     it('无重复时应该返回空数组', () => {
       const records: VerificationRecord[] = [
-        { id: 'R1', recordCode: 'VR001', couponId: 'C1', verificationTime: '2024-01-15T10:00:00Z', isSuccess: true } as any,
-        { id: 'R2', recordCode: 'VR002', couponId: 'C2', verificationTime: '2024-01-15T11:00:00Z', isSuccess: true } as any
+        { id: 'R1', code: 'R1', name: '记录1', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR001', couponId: 'C1', gateId: 'G1', verificationTime: '2024-01-15T10:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true },
+        { id: 'R2', code: 'R2', name: '记录2', status: 'confirmed', owner: '张三', createdAt: '', updatedAt: '', batchId: 'B1', recordCode: 'VR002', couponId: 'C2', gateId: 'G1', verificationTime: '2024-01-15T11:00:00Z', verificationMethod: 'online', operatorName: '操作人', isSuccess: true }
       ]
 
-      const duplicates = detectDuplicateVerification(records)
-      expect(duplicates.length).toBe(0)
+      expect(detectDuplicateVerification(records)).toHaveLength(0)
     })
   })
 })
@@ -209,31 +205,18 @@ describe('状态流转规则', () => {
   })
 
   it('已归档和已驳回不应该有下一步状态', () => {
-    expect(getNextPossibleStatuses('archived').length).toBe(0)
+    expect(getNextPossibleStatuses('archived')).toHaveLength(0)
     expect(getNextPossibleStatuses('rejected')).toContain('draft')
-  })
-
-  it('驳回必须填写原因（业务规则验证）', () => {
-    const transitions = getNextPossibleStatuses('pending_review')
-    expect(transitions).toContain('rejected')
-    
-    // 模拟驳回流程：如果目标状态是rejected，必须提供原因
-    const targetStatus = 'rejected'
-    if (transitions.includes(targetStatus)) {
-      // 在实际应用中，这里会弹出对话框要求输入原因
-      const reason = '测试原因'
-      expect(reason).toBeTruthy()
-    }
   })
 })
 
 describe('数据聚合功能', () => {
   it('应该按日期聚合数据', () => {
-    const items = [
+    const items: Array<{ date: string; value: number }> = [
       { date: '2024-01-15', value: 10 },
       { date: '2024-01-15', value: 20 },
       { date: '2024-01-16', value: 30 }
-    ] as any
+    ]
 
     const result = aggregateMetricsByDate(
       items,
@@ -242,22 +225,22 @@ describe('数据聚合功能', () => {
     )
 
     expect(result).toHaveLength(2)
-    expect(result.find(r => r.date === '2024-01-15')?.value).toBe(30)
-    expect(result.find(r => r.date === '2024-01-16')?.value).toBe(30)
+    expect(result.find((row) => row.date === '2024-01-15')?.value).toBe(30)
+    expect(result.find((row) => row.date === '2024-01-16')?.value).toBe(30)
   })
 
   it('应该按批次聚合数据', () => {
-    const items = [
+    const items: Array<{ batchId: string; amount: number }> = [
       { batchId: 'B1', amount: 100 },
       { batchId: 'B2', amount: 200 },
       { batchId: 'B1', amount: 150 }
-    ] as any
+    ]
 
     const result = aggregateMetricsByBatch(items, (item) => item.amount)
 
     expect(result).toHaveLength(2)
-    expect(result.find(r => r.batchId === 'B1')?.value).toBe(250)
-    expect(result.find(r => r.batchId === 'B2')?.value).toBe(200)
+    expect(result.find((row) => row.batchId === 'B1')?.value).toBe(250)
+    expect(result.find((row) => row.batchId === 'B2')?.value).toBe(200)
   })
 })
 

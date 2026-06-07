@@ -1,40 +1,39 @@
 import type { Component } from 'solid-js'
-import { createSignal, For, Show } from 'solid-js'
+import { createEffect, createSignal, For, Show } from 'solid-js'
 import { useParams } from '@solidjs/router'
 import StatusBadge from '../components/StatusBadge'
-import DetailDrawer from '../components/DetailDrawer'
 import DiffViewer from '../components/DiffViewer'
 import EvidenceTimeline from '../components/EvidenceTimeline'
 import { state } from '../stores'
-import type { VerificationRecord, EntityStatus } from '../types'
-import { STATUS_LABELS, checkCouponConsistency, formatDate } from '../utils/business'
+import type { VerificationRecord } from '../types'
+import { checkCouponConsistency } from '../utils/business'
 
 const RecordDetail: Component = () => {
   const params = useParams()
   const [record, setRecord] = createSignal<VerificationRecord | null>(null)
-  const [drawerOpen, setDrawerOpen] = createSignal(false)
   const [editMode, setEditMode] = createSignal(false)
   const [editedData, setEditedData] = createSignal<Partial<VerificationRecord>>({})
   const [showDiff, setShowDiff] = createSignal(false)
 
   const recordId = () => params.id
 
-  const loadRecord = () => {
-    const found = state.records.find(r => r.id === recordId())
-    if (found) {
-      setRecord(found)
-    }
-  }
+  createEffect(() => {
+    const found = state.records.find((item) => item.id === recordId()) || null
+    setRecord(found)
+  })
 
-  const handleFieldChange = (key: string, value: any) => {
+  const handleFieldChange = <K extends keyof VerificationRecord>(key: K, value: VerificationRecord[K]) => {
     setEditedData({ ...editedData(), [key]: value })
   }
 
   const startEditing = () => {
-    if (record()) {
-      setEditedData({ ...record()! })
-      setEditMode(true)
+    const currentRecord = record()
+    if (!currentRecord) {
+      return
     }
+
+    setEditedData({ ...currentRecord })
+    setEditMode(true)
   }
 
   const cancelEditing = () => {
@@ -54,29 +53,31 @@ const RecordDetail: Component = () => {
     setEditMode(false)
     setEditedData({})
     setShowDiff(false)
-    loadRecord()
   }
 
   const relatedCoupon = () => {
-    if (!record()) return null
-    return state.coupons.find(c => c.id === record()!.couponId)
+    const currentRecord = record()
+    if (!currentRecord) return null
+    return state.coupons.find((coupon) => coupon.id === currentRecord.couponId) || null
   }
 
   const relatedGate = () => {
-    if (!record()) return null
-    return state.gates.find(g => g.id === record()!.gateId)
+    const currentRecord = record()
+    if (!currentRecord) return null
+    return state.gates.find((gate) => gate.id === currentRecord.gateId) || null
   }
 
   const relatedCredential = () => {
-    if (!record()) return null
     const coupon = relatedCoupon()
-    return state.credentials.find(cr => cr.id === coupon?.visitorId || cr.credentialNumber === record()!.recordCode)
+    if (!coupon?.visitorId) return null
+    return state.credentials.find((credential) => credential.id === coupon.visitorId) || null
   }
 
   const consistencyCheck = () => {
-    const currentRecord = record()
     const coupon = relatedCoupon()
-    if (!currentRecord || !coupon) return null
+    const currentRecord = record()
+    if (!coupon || !currentRecord) return null
+
     return checkCouponConsistency(
       coupon,
       currentRecord,
@@ -86,35 +87,38 @@ const RecordDetail: Component = () => {
   }
 
   const timelineItems = () => {
-    if (!record()) return []
-    
+    const currentRecord = record()
+    if (!currentRecord) return []
+
+    const gate = relatedGate()
+
     return [
       {
         id: '1',
-        time: record()!.createdAt,
+        time: currentRecord.createdAt,
         title: '创建核销记录',
-        description: `操作人：${record()!.operatorName}`,
+        description: `操作人：${currentRecord.operatorName}`,
         type: 'info' as const
       },
       {
         id: '2',
-        time: record()!.verificationTime,
-        title: `执行核销（${record()!.verificationMethod === 'online' ? '在线' : '离线'}）`,
-        description: record()!.isSuccess ? '✓ 核销成功' : `✗ 核销失败：${record()!.failReason || '未知原因'}`,
-        type: record()!.isSuccess ? 'success' as const : 'error' as const
+        time: currentRecord.verificationTime,
+        title: `执行核销（${currentRecord.verificationMethod === 'online' ? '在线' : '离线'}）`,
+        description: currentRecord.isSuccess ? '✓ 核销成功' : `✗ 核销失败：${currentRecord.failReason || '未知原因'}`,
+        type: currentRecord.isSuccess ? 'success' as const : 'error' as const
       },
-      ...(relatedGate() ? [{
+      ...(gate ? [{
         id: '3',
-        time: relatedGate()!.lastHeartbeatTime || record()!.verificationTime,
-        title: `闸机状态：${relatedGate()!.isOnline ? '在线' : '离线'}`,
-        description: `位置：${relatedGate()!.location}，当前负载：${relatedGate()!.currentLoad}/${relatedGate()!.dailyCapacity}`,
-        type: relatedGate()!.isOnline ? 'success' as const : 'warning' as const
+        time: gate.lastHeartbeatTime || currentRecord.verificationTime,
+        title: `闸机状态：${gate.isOnline ? '在线' : '离线'}`,
+        description: `位置：${gate.location}，当前负载：${gate.currentLoad}/${gate.dailyCapacity}`,
+        type: gate.isOnline ? 'success' as const : 'warning' as const
       }] : []),
-      ...(!record()!.isSuccess && record()!.failReason ? [{
+      ...(!currentRecord.isSuccess && currentRecord.failReason ? [{
         id: '4',
-        time: new Date(new Date(record()!.verificationTime).getTime() + 60000).toISOString(),
+        time: new Date(new Date(currentRecord.verificationTime).getTime() + 60000).toISOString(),
         title: '异常标记',
-        description: record()!.failReason,
+        description: currentRecord.failReason,
         type: 'error' as const
       }] : [])
     ]
@@ -153,12 +157,15 @@ const RecordDetail: Component = () => {
               <h2 style={{ margin: 0 }}>核销记录详情</h2>
               <div style={{ display: 'flex', gap: '8px', 'align-items': 'center' }}>
                 <StatusBadge status={record()!.status} size="large" />
-                <Show when={!editMode()} fallback={
-                  <>
-                    <button onClick={cancelEditing} style={{ padding: '8px 16px', background: '#f5f5f5', border: '1px solid var(--border-color)', 'border-radius': '4px' }}>取消</button>
-                    <button onClick={saveChanges} style={{ padding: '8px 16px', background: '#52c41a', color: '#fff', border: 'none', 'border-radius': '4px' }}>保存</button>
-                  </>
-                }>
+                <Show
+                  when={!editMode()}
+                  fallback={
+                    <>
+                      <button onClick={cancelEditing} style={{ padding: '8px 16px', background: '#f5f5f5', border: '1px solid var(--border-color)', 'border-radius': '4px' }}>取消</button>
+                      <button onClick={saveChanges} style={{ padding: '8px 16px', background: '#52c41a', color: '#fff', border: 'none', 'border-radius': '4px' }}>保存</button>
+                    </>
+                  }
+                >
                   <button onClick={startEditing} style={{ padding: '8px 16px', background: 'var(--primary-color)', color: '#fff', border: 'none', 'border-radius': '4px' }}>编辑</button>
                 </Show>
               </div>
@@ -167,7 +174,10 @@ const RecordDetail: Component = () => {
             <div class="detail-grid" style={{ display: 'grid', 'grid-template-columns': '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', 'margin-bottom': '6px', color: 'var(--text-secondary)', 'font-weight': 500 }}>记录编号</label>
-                <Show when={!editMode()} fallback={<input type="text" value={editedData().recordCode || ''} onChange={(e) => handleFieldChange('recordCode', e.currentTarget.value)} style={{ width: '100%' }} />}>
+                <Show
+                  when={!editMode()}
+                  fallback={<input type="text" value={editedData().recordCode || ''} onChange={(event) => handleFieldChange('recordCode', event.currentTarget.value)} style={{ width: '100%' }} />}
+                >
                   <strong>{record()!.recordCode}</strong>
                 </Show>
               </div>
@@ -184,22 +194,38 @@ const RecordDetail: Component = () => {
 
               <div>
                 <label style={{ display: 'block', 'margin-bottom': '6px', color: 'var(--text-secondary)', 'font-weight': 500 }}>核销时间</label>
-                <Show when={!editMode()} fallback={<input type="datetime-local" value={editedData().verificationTime?.slice(0, 16) || ''} onChange={(e) => handleFieldChange('verificationTime', e.currentTarget.value)} style={{ width: '100%' }} />}>
+                <Show
+                  when={!editMode()}
+                  fallback={<input type="datetime-local" value={editedData().verificationTime?.slice(0, 16) || ''} onChange={(event) => handleFieldChange('verificationTime', event.currentTarget.value)} style={{ width: '100%' }} />}
+                >
                   {record()!.verificationTime}
                 </Show>
               </div>
 
               <div>
                 <label style={{ display: 'block', 'margin-bottom': '6px', color: 'var(--text-secondary)', 'font-weight': 500 }}>核销方式</label>
-                <Show when={!editMode()} fallback={<select value={editedData().verificationMethod || ''} onChange={(e) => handleFieldChange('verificationMethod', e.currentTarget.value)} style={{ width: '100%' }}><option value="online">在线</option><option value="offline">离线</option></select>}>
-                  <StatusBadge status={record()!.verificationMethod === 'online' ? 'confirmed' : 'pending_supplement'} size="small" />
-                  {record()!.verificationMethod === 'online' ? ' 在线' : ' 离线'}
+                <Show
+                  when={!editMode()}
+                  fallback={
+                    <select value={editedData().verificationMethod || ''} onChange={(event) => handleFieldChange('verificationMethod', event.currentTarget.value as VerificationRecord['verificationMethod'])} style={{ width: '100%' }}>
+                      <option value="online">在线</option>
+                      <option value="offline">离线</option>
+                    </select>
+                  }
+                >
+                  <div style={{ display: 'flex', gap: '8px', 'align-items': 'center' }}>
+                    <StatusBadge status={record()!.verificationMethod === 'online' ? 'confirmed' : 'pending_supplement'} size="small" />
+                    <span>{record()!.verificationMethod === 'online' ? '在线' : '离线'}</span>
+                  </div>
                 </Show>
               </div>
 
               <div>
                 <label style={{ display: 'block', 'margin-bottom': '6px', color: 'var(--text-secondary)', 'font-weight': 500 }}>操作人</label>
-                <Show when={!editMode()} fallback={<input type="text" value={editedData().operatorName || ''} onChange={(e) => handleFieldChange('operatorName', e.currentTarget.value)} style={{ width: '100%' }} />}>
+                <Show
+                  when={!editMode()}
+                  fallback={<input type="text" value={editedData().operatorName || ''} onChange={(event) => handleFieldChange('operatorName', event.currentTarget.value)} style={{ width: '100%' }} />}
+                >
                   {record()!.operatorName}
                 </Show>
               </div>
@@ -220,7 +246,10 @@ const RecordDetail: Component = () => {
               <Show when={!record()!.isSuccess}>
                 <div style={{ 'grid-column': '1 / -1' }}>
                   <label style={{ display: 'block', 'margin-bottom': '6px', color: 'var(--text-secondary)', 'font-weight': 500 }}>失败原因</label>
-                  <Show when={!editMode()} fallback={<textarea value={editedData().failReason || ''} onChange={(e) => handleFieldChange('failReason', e.currentTarget.value)} rows={3} style={{ width: '100%' }} />}>
+                  <Show
+                    when={!editMode()}
+                    fallback={<textarea value={editedData().failReason || ''} onChange={(event) => handleFieldChange('failReason', event.currentTarget.value)} rows={3} style={{ width: '100%' }} />}
+                  >
                     <span style={{ color: '#f5222d' }}>{record()!.failReason}</span>
                   </Show>
                 </div>
@@ -228,7 +257,10 @@ const RecordDetail: Component = () => {
 
               <div style={{ 'grid-column': '1 / -1' }}>
                 <label style={{ display: 'block', 'margin-bottom': '6px', color: 'var(--text-secondary)', 'font-weight': 500 }}>备注</label>
-                <Show when={!editMode()} fallback={<textarea value={editedData().remark || ''} onChange={(e) => handleFieldChange('remark', e.currentTarget.value)} rows={3} style={{ width: '100%' }} />}>
+                <Show
+                  when={!editMode()}
+                  fallback={<textarea value={editedData().remark || ''} onChange={(event) => handleFieldChange('remark', event.currentTarget.value)} rows={3} style={{ width: '100%' }} />}
+                >
                   {record()!.remark || '-'}
                 </Show>
               </div>
@@ -253,12 +285,12 @@ const RecordDetail: Component = () => {
                 </h4>
 
                 <Show when={!consistencyCheck()!.isConsistent}>
-                  <ul style={{ 'margin': 0, 'padding-left': '20px', 'font-size': '13px', color: 'var(--text-secondary)' }}>
+                  <ul style={{ margin: 0, 'padding-left': '20px', 'font-size': '13px', color: 'var(--text-secondary)' }}>
                     <For each={consistencyCheck()!.issues}>
                       {(issue) => <li>{issue}</li>}
                     </For>
                   </ul>
-                  
+
                   <div style={{
                     'margin-top': '12px',
                     padding: '10px',
@@ -278,10 +310,10 @@ const RecordDetail: Component = () => {
         <Show when={showDiff()}>
           <DiffViewer
             oldData={record()!}
-            newData={editedData() as any}
+            newData={editedData() as Record<string, any>}
             title="变更预览"
           />
-          
+
           <div style={{
             'margin-top': '16px',
             display: 'flex',
