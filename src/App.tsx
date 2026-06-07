@@ -16,15 +16,13 @@ export default function App() {
   })
 
   return (
-    <Router>
-      <Layout>
-        <Route path="/" component={CouponOverview} />
-        <Route path="/exceptions" component={ExceptionWorkspace} />
-        <Route path="/records/:id" component={RecordDetail} />
-        <Route path="/rules" component={RuleSandbox} />
-        <Route path="/duplicates" component={DuplicateQueue} />
-        <Route path="/charts" component={ChartPanel} />
-      </Layout>
+    <Router root={Layout}>
+      <Route path="/" component={CouponOverview} />
+      <Route path="/exceptions" component={ExceptionWorkspace} />
+      <Route path="/records/:id" component={RecordDetail} />
+      <Route path="/rules" component={RuleSandbox} />
+      <Route path="/duplicates" component={DuplicateQueue} />
+      <Route path="/charts" component={ChartPanel} />
     </Router>
   )
 }
